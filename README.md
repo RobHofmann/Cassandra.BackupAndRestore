@@ -12,6 +12,8 @@ Backup tool for Cassandra. This exports the keyspace definitions, table definiti
  - Archive to a folder
  - Keep the last X backups in your archive folder (auto cleaning old backups)
  - Define a list of keyspaces/tables to exclude from backup (wildcard is usable).
+ - Support for alerting to OpsGenie if something fails (unhandled exceptions at this point)
+ - Proxy support (with or without authentication) for Alerting
 
 # Example config
 ```
@@ -19,19 +21,33 @@ Backup tool for Cassandra. This exports the keyspace definitions, table definiti
   "Cassandra": {
     "HostName": "localhost",
     "UserName": "",
-    "Password": "",
+    "Password": ""
+  },
+  "Backup": {
     "BackupTargetFolder": "D:/mybackupfolder",
     "EmptyBackupTargetFolderBeforeBackingUp": true,
     "CompressBackup": true,
     "DeleteLooseFilesAfterCompressing": true,
     "CompressTimestampFormat": "yyyyMMddHHmmss",
-    "ArchiveFolder": "D:/myarchivefolder",
-    "KeepNumberOfArchives": 4,
     "ExcludeList": [
       "system.*",
       "system_auth.role_permissions",
       "*somewildcardedvalue*"
     ]
+  },
+  "BackupArchiving": {
+    "ArchiveFolder": "D:/myarchivefolder",
+    "KeepNumberOfArchives": 4
+  },
+  "Alerting": {
+    "Enable": true,
+    "Type": "OpsGenie",
+    "ApiKey": "OPSGENIE-API-KEY",
+    "EnableProxy": false,
+    "ProxyUrl": "http://proxy.domain.local:8080",
+    "EnableProxyAuthentication": true,
+    "ProxyUsername": "domain\\someuser",
+    "ProxyPassword": "somepassword"
   }
 }
 ```
@@ -41,10 +57,10 @@ Backup tool for Cassandra. This exports the keyspace definitions, table definiti
  - CompressBackup: Create a ZIP archive of your backup (true/false)
  - DeleteLooseFilesAfterCompressing: Clean up uncompressed files after creating the ZIP archive (true/false)
  - CompressTimestampFormat: Timestamp to add to the ZIP files. (.NET DateTime Formatting)
+ - ExcludeList: A list of strings containing keyspaces/tables to exclude from backups.
  - ArchiveFolder: Where to build up your archive. Use this feature in combination with KeepNumberOfArchives (use forward slashes in paths. Leave empty to disable feature)
  - KeepNumberOfArchives: The amount of backups to keep in your archive folder.
- - ExcludeList: A list of strings containing keyspaces/tables to exclude from backups.
-
+ 
 # Build & Run
 Build and publish the app in "self-contained" mode.
 
