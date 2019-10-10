@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -46,48 +47,20 @@ namespace Cassandra.BackupAndRestore.Services.Cassandra
             return cluster.Metadata.GetKeyspace(keyspaceName).AsCqlQuery();
         }
 
-        public string GetTableDefinition(ISession session, string keyspaceName, string tableName)
+        public string GetTableDefinition(string hostName, string userName, string password, string keyspace, string tableName)
         {
-            // Fetch information from the database
-            var tableSchema = session.Execute(new SimpleStatement($"SELECT * FROM system_schema.tables WHERE keyspace_name = '{keyspaceName}' AND table_name = '{tableName}'")).FirstOrDefault();
-            if (tableSchema == null)
-                throw new ArgumentNullException($"Couldnt find table schema for {keyspaceName}.{tableName}");
-            var columnSchema = SortColumnSchema(session.Execute(new SimpleStatement($"SELECT * FROM system_schema.columns WHERE keyspace_name = '{keyspaceName}' AND table_name = '{tableName}'")));
-
-            // Create table statement
-            var sb = new StringBuilder();
-            sb.AppendLine($"CREATE TABLE {keyspaceName}.{tableName} (");
-
-            // Append Column information
-            foreach (var column in columnSchema)
-                sb.AppendLine($"    {column.GetValue<string>("column_name")} {column.GetValue<string>("type")},");
-
-            // Add Partition Key information
-            sb.Append("    PRIMARY KEY (");
-            sb.Append(GetPartitionKeyColumns(columnSchema));
-            sb.AppendLine(")");
-
-            // Add Clustering Order information
-            sb.Append($") WITH CLUSTERING ORDER BY (");
-            sb.Append(GetClusteringColumns(columnSchema));
-            sb.AppendLine(")");
-
-            // Table Options
-            sb.AppendLine($"    AND bloom_filter_fp_chance = {tableSchema.GetValue<double>("bloom_filter_fp_chance").ToString("G", CultureInfo.InvariantCulture)}");
-            sb.AppendLine($"    AND caching = {GetCassandraCompatibleJsonFromObject(tableSchema.GetValue<object>("caching"))}");
-            sb.AppendLine($"    AND comment = '{tableSchema.GetValue<string>("comment")}'");
-            sb.AppendLine($"    AND compaction = {GetCassandraCompatibleJsonFromObject(tableSchema.GetValue<object>("compaction"))}");
-            sb.AppendLine($"    AND compression = {GetCassandraCompatibleJsonFromObject(tableSchema.GetValue<object>("compression"))}");
-            sb.AppendLine($"    AND crc_check_chance = {tableSchema.GetValue<double>("crc_check_chance").ToString("G", CultureInfo.InvariantCulture)}");
-            sb.AppendLine($"    AND dclocal_read_repair_chance = {tableSchema.GetValue<double>("dclocal_read_repair_chance").ToString("G", CultureInfo.InvariantCulture)}");
-            sb.AppendLine($"    AND default_time_to_live = {tableSchema.GetValue<int>("default_time_to_live")}");
-            sb.AppendLine($"    AND gc_grace_seconds = {tableSchema.GetValue<int>("gc_grace_seconds")}");
-            sb.AppendLine($"    AND max_index_interval = {tableSchema.GetValue<int>("max_index_interval")}");
-            sb.AppendLine($"    AND memtable_flush_period_in_ms = {tableSchema.GetValue<int>("memtable_flush_period_in_ms")}");
-            sb.AppendLine($"    AND min_index_interval = {tableSchema.GetValue<int>("min_index_interval")}");
-            sb.AppendLine($"    AND read_repair_chance = {tableSchema.GetValue<double>("read_repair_chance").ToString("G", CultureInfo.InvariantCulture)}");
-            sb.AppendLine($"    AND speculative_retry = '{tableSchema.GetValue<string>("speculative_retry")}';");
-            return sb.ToString();
+            ProcessStartInfo startinfo = new ProcessStartInfo() { RedirectStandardOutput = true, RedirectStandardError = true };
+            startinfo.FileName = @"cqlsh";
+            startinfo.Arguments = $"{hostName} -u {userName} -p \"{password}\" -e \"DESCRIBE TABLE {keyspace}.{tableName}\"";
+            Process process = new Process();
+            process.StartInfo = startinfo;
+            process.StartInfo.UseShellExecute = false;
+            process.Start();
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+                throw new Exception("CQLSH could not export any key definition", new Exception(process.StandardError.ReadToEnd()));
+            return output;
         }
 
         private string GetClusteringColumns(List<Row> columns)

@@ -93,7 +93,7 @@ namespace Cassandra.BackupAndRestore
                         continue;
                     }
 
-                    await DoBackupTable(cluster, session, backupTimestamp, keyspaceName, tableName, fullTableName);
+                    await DoBackupTable(cluster, session, _cassandraConfiguration.HostName, _cassandraConfiguration.UserName, _cassandraConfiguration.Password, backupTimestamp, keyspaceName, tableName, fullTableName);
                 }
 
                 if (!string.IsNullOrEmpty(_backupArchivingConfiguration.ArchiveFolder))
@@ -130,7 +130,7 @@ namespace Cassandra.BackupAndRestore
             }
         }
 
-        private async Task DoBackupTable(ICluster cluster, ISession session, DateTime backupTimestamp, string keyspaceName, string tableName, string fullTableName)
+        private async Task DoBackupTable(ICluster cluster, ISession session, string hostName, string userName, string password, DateTime backupTimestamp, string keyspaceName, string tableName, string fullTableName)
         {
             var keyspaceDefinitionFileInfo = new FileInfo($"{_backupConfiguration.BackupTargetFolder}/{keyspaceName}.keyspace");
             var tableDefinitionFileInfo = new FileInfo($"{_backupConfiguration.BackupTargetFolder}/{fullTableName}.table");
@@ -142,7 +142,7 @@ namespace Cassandra.BackupAndRestore
             BackupKeyspaceDefinition(cluster, keyspaceDefinitionFileInfo, keyspaceName);
             _logger.Log("Finished backing up keyspace definition", fullTableName);
             _logger.Log("Backing up table definition", fullTableName);
-            BackupTableDefinition(session, tableDefinitionFileInfo, keyspaceName, tableName);
+            BackupTableDefinition(tableDefinitionFileInfo, hostName, userName, password, keyspaceName, tableName);
             _logger.Log("Finished backing up table definition", fullTableName);
 
             _logger.Log("Fetching rows", fullTableName);
@@ -176,9 +176,9 @@ namespace Cassandra.BackupAndRestore
                 tw.Write(keyspaceDefinition);
         }
 
-        private void BackupTableDefinition(ISession session, FileInfo tableDefinitionFileInfo, string keyspaceName, string tableName)
+        private void BackupTableDefinition(FileInfo tableDefinitionFileInfo, string hostName, string userName, string password, string keyspace, string tableName)
         {
-            var tableDefinition = _cassandraService.GetTableDefinition(session, keyspaceName, tableName);
+            var tableDefinition = _cassandraService.GetTableDefinition(hostName, userName, password, keyspace, tableName);
             using (TextWriter tw = new StreamWriter(tableDefinitionFileInfo.FullName, false, Encoding.ASCII))
                 tw.Write(tableDefinition);
         }

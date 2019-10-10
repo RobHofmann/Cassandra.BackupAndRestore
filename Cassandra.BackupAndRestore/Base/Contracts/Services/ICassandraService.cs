@@ -17,6 +17,6 @@ namespace Cassandra.BackupAndRestore.Base.Contracts.Services
 
         string GetKeyspaceDefinition(ICluster cluster, string keyspaceName);
 
-        string GetTableDefinition(ISession session, string keyspaceName, string tableName);
+        string GetTableDefinition(string hostName, string userName, string password, string keyspace, string tableName);
     }
 }

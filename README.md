@@ -57,10 +57,10 @@ Backup tool for Cassandra. This exports the keyspace definitions, table definiti
  - CompressBackup: Create a ZIP archive of your backup (true/false)
  - DeleteLooseFilesAfterCompressing: Clean up uncompressed files after creating the ZIP archive (true/false)
  - CompressTimestampFormat: Timestamp to add to the ZIP files. (.NET DateTime Formatting)
- - ExcludeList: A list of strings containing keyspaces/tables to exclude from backups.
  - ArchiveFolder: Where to build up your archive. Use this feature in combination with KeepNumberOfArchives (use forward slashes in paths. Leave empty to disable feature)
  - KeepNumberOfArchives: The amount of backups to keep in your archive folder.
- 
+ - ExcludeList: A list of strings containing keyspaces/tables to exclude from backups.
+
 # Build & Run
 Build and publish the app in "self-contained" mode.
 
